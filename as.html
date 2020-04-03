@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>A Star Algo</title>
+</head>
+<body>
+    <h1>A Star Algo</h1>
+    <canvas id="CanvasAS" width="400" height="200" style="border:1px solid #000000;" onclick="colorSelectedSquareOnClick(event)"></canvas> 
+    <p>Last Point position is <span id="lastPoint"></span></p>
+    <p>Current Point position is <span id="currentPoint"></span></p>
+    <p>The distance between the Last Point and Current Point is : <span id="dist"></span></p>
+    <button onclick="changeSurface('normal')">Normal</button>
+    <button onclick="changeSurface('water')">Water</button>
+    <button onclick="changeSurface('obstacle')">Obstacle</button>
+    <button onclick="changeSurface('clear')">Clear</button>
+    <script src="AS.js"></script>
+</body>
+</html>
