@@ -2,17 +2,16 @@ var canvas = document.getElementById("canvas");
 /** @type {CanvasRenderingContext2D} */
 var ctx = canvas.getContext("2d");
 var surfaces = [];
-var mode = "wait";
+var mode = "default";
+var originPosition;
+var targetPosition;
 
-
+canvas.focus();
 gridDrawer();
-
 var map = createMap(20, 10);
-//console.log(map);
-//difuse(map, {x: 5, y:5}, 3);
 
 canvas.addEventListener('keydown', function (event) {
-    const keys = event.key; // "a", "1", "Shift", etc.
+    const keys = event.key;
     switchMode(keys);
 });
 
@@ -51,6 +50,16 @@ function drawSurfaces() {
     }
 }
 
+function drawSurfacesMap(map) {
+    console.log(map);
+    for (let i = 0; i < map.length; i++) {
+        for (let j = 0; j < map[i].length; j++) {
+            ctx.fillStyle = map[i][j].color;
+            ctx.fillRect(map[i][j].x * 20, map[i][j].y * 20, 20, 20);
+        }
+    }
+}
+
 async function drawSurfacesDistance() {
     for (let i = 0; i < surfaces.length; i++) {
         ctx.fillStyle = surfaces[i].color;
@@ -69,18 +78,24 @@ function drawOnClick(evt) {
     //    drawSurfaces();
   //      gridDrawer();
     } else if (mode === "origin") {
+        console.log(originPosition);
         placeOrigin(evt);
-        difuse(map, {x: Math.floor(getMousePos(canvas, evt).x / 20 ), y:Math.floor(getMousePos(canvas, evt).y / 20 )}, 3);
+        console.log(originPosition);
+        difuse(map, originPosition, 3);
 //        drawSurfacesDistance();
         //gridDrawer();
-    } else if (mode === "wait") {
+    } else if (mode === "default") {
         //colorSurfacesOnClick(evt);
         placeObstacle(evt);
       //  drawSurfaces();
        // gridDrawer();
+    } else if (mode === "clear") {
+        clearMap(map, 20, 10);
+    } else if (mode === "erase") {
+        erase(evt);
     }
 //    console.log(surfaces);
-    drawSurfaces();
+    drawSurfacesMap(map);
     gridDrawer();
 }
 
@@ -110,8 +125,6 @@ function getMousePos(canvas, evt) {
 }
 
 function difuse(map, origin, depth) {
-    map[origin.x][origin.y].type = "S";
-    map[origin.x][origin.y].distance = 0;
     var colorVariance = 0;
     var found = false;
     var target = {x: 0, y: 0, type: "N", color: "rgb(255, 255, 255)", distance: 0};
@@ -126,13 +139,14 @@ function difuse(map, origin, depth) {
     while (found === false) {
    //     console.log("actualDistance: " + actualDistance);
 //        var q = queue.shift();
-        colorVariance = (actualDistance + 1) * 15;
+        colorVariance = (actualDistance + 1) * 8;
         color = `rgb(${20 + colorVariance}, ${200 + Math.floor(colorVariance / 4)}, ${245 + Math.floor(colorVariance / 10)})`;
         if (q.x + 1 < 20) {
             if (map[q.x + 1][q.y].type === "N") {
                 map[q.x + 1][q.y].type = "S";
                 map[q.x + 1][q.y].color = color;
                 map[q.x + 1][q.y].distance = actualDistance + 1;
+                map[q.x + 1][q.y].visited = true;
                 colorSurfaces((q.x + 1) * 20, q.y * 20, color);
                 queue.push(map[q.x + 1][q.y]);
             } else if (map[q.x + 1][q.y].type === "T") {
@@ -146,6 +160,7 @@ function difuse(map, origin, depth) {
                 map[q.x - 1][q.y].type = "S";
                 map[q.x - 1][q.y].color = color;
                 map[q.x - 1][q.y].distance = actualDistance + 1;
+                map[q.x - 1][q.y].visited = true;
                 colorSurfaces((q.x - 1) * 20, q.y * 20, color);
                 queue.push(map[q.x - 1][q.y]);
             } else if (map[q.x - 1][q.y].type === "T") {
@@ -159,6 +174,7 @@ function difuse(map, origin, depth) {
                 map[q.x][q.y + 1].type = "S";
                 map[q.x][q.y + 1].color = color;
                 map[q.x][q.y + 1].distance = actualDistance + 1;
+                map[q.x][q.y + 1].visited = true;
                 colorSurfaces(q.x * 20, (q.y + 1) * 20, color);
                 queue.push(map[q.x][q.y + 1]);
             } else if (map[q.x][q.y + 1].type === "T") {
@@ -172,6 +188,7 @@ function difuse(map, origin, depth) {
                 map[q.x][q.y - 1].type = "S";
                 map[q.x][q.y - 1].color = color;
                 map[q.x][q.y - 1].distance = actualDistance + 1;
+                map[q.x][q.y - 1].visited = true;
                 colorSurfaces(q.x * 20, (q.y - 1) * 20, color);
                 queue.push(map[q.x][q.y - 1]);
             } else if (map[q.x][q.y - 1].type === "T") {
@@ -200,10 +217,20 @@ function createMap(w, h) {
         map.push([]);
         for (var j = 0; j < h; j++) {
             map[i].push([]);
-            map[i][j] = {x: i, y: j, type: "N", color: "rgb(255, 255, 255)", distance: 100};
+            map[i][j] = {x: i, y: j, type: "N", color: "rgb(255, 255, 255)", distance: 0, visited: false};
         }
     }
     return map;
+}
+
+function clearMap(map, w, h) {
+    for (var i = 0; i < w; i++) {
+        for (var j = 0; j < h; j++) {
+            map[i][j] = {x: i, y: j, type: "N", color: "rgb(255, 255, 255)", distance: 0, visited: false};
+        }
+    }
+    originPosition = undefined;
+    targetPosition = undefined;
 }
 
 function sleep(ms) {
@@ -211,17 +238,30 @@ function sleep(ms) {
 }
 
 function placeTarget(evt) {
-    colorSurfaces(Math.floor(getMousePos(canvas, evt).x / 20 ) * 20, Math.floor(getMousePos(canvas, evt).y / 20) * 20, "red");
-    map[Math.floor(getMousePos(canvas, evt).x / 20 )][Math.floor(getMousePos(canvas, evt).y / 20)].type = "T";
+    if (targetPosition === undefined) {
+        Object.assign(map[Math.floor(getMousePos(canvas, evt).x / 20 )][Math.floor(getMousePos(canvas, evt).y / 20)], {type: "T", color: "red"});
+        targetPosition = {x: Math.floor(getMousePos(canvas, evt).x / 20), y: Math.floor(getMousePos(canvas, evt).y / 20)}
+    }
 }
 
 function placeOrigin(evt) {
-    colorSurfaces(Math.floor(getMousePos(canvas, evt).x / 20 ) * 20, Math.floor(getMousePos(canvas, evt).y / 20) * 20, "blue");
+    if (originPosition === undefined) {
+        Object.assign(map[Math.floor(getMousePos(canvas, evt).x / 20 )][Math.floor(getMousePos(canvas, evt).y / 20)], {type: "O", color: "blue", distance: 0, visited: true});
+        originPosition = {x: Math.floor(getMousePos(canvas, evt).x / 20), y: Math.floor(getMousePos(canvas, evt).y / 20)}
+    }
 }
 
 function placeObstacle(evt) {
-    colorSurfaces(Math.floor(getMousePos(canvas, evt).x / 20 ) * 20, Math.floor(getMousePos(canvas, evt).y / 20) * 20, "grey");
-    map[Math.floor(getMousePos(canvas, evt).x / 20 )][Math.floor(getMousePos(canvas, evt).y / 20)].type = "W";
+    Object.assign(map[Math.floor(getMousePos(canvas, evt).x / 20 )][Math.floor(getMousePos(canvas, evt).y / 20)], {type: "W", color: "grey"});
+}
+
+function erase(evt) {
+    if (map[Math.floor(getMousePos(canvas, evt).x / 20 )][Math.floor(getMousePos(canvas, evt).y / 20)].type = "T") {
+        targetPosition = undefined;
+    } else if (map[Math.floor(getMousePos(canvas, evt).x / 20 )][Math.floor(getMousePos(canvas, evt).y / 20)].type = "O") {
+        originPosition = undefined;
+    }
+    Object.assign(map[Math.floor(getMousePos(canvas, evt).x / 20 )][Math.floor(getMousePos(canvas, evt).y / 20)], {type: "N", color: "white", distance: 0, visited: false});
 }
 
 function switchMode(key) {
@@ -229,8 +269,14 @@ function switchMode(key) {
         mode = "target";
     } else if (key === "o") {
         mode = "origin";
+    } else if (key === "w") {
+        mode = "wall";
+    } else if (key === "c") {
+        mode = "clear";
+    } else if (key === "e") {
+        mode = "erase";
     } else {
-        mode = "wait";
+        mode = "default";
     }
 }
 
@@ -240,30 +286,30 @@ function foundOrigin(map, target) {
     console.log("actual");
     console.log(actual);
     var safe = 0;
-    while (!foundOrigin && safe <100) {
+    while (!foundOrigin /*&& safe <100*/) {
         var shortestDistance;
         if (actual.x + 1 < map.length) {
-            if (map[actual.x + 1][actual.y].distance < actual.distance) {
+            if (map[actual.x + 1][actual.y].distance < actual.distance && map[actual.x + 1][actual.y].visited === true) {
                 actual.distance = map[actual.x + 1][actual.y].distance;
                 shortestDistance = map[actual.x + 1][actual.y];
             }
         }
         if (actual.x - 1 >= 0) {
-            if (map[actual.x - 1][actual.y].distance < actual.distance) {
+            if (map[actual.x - 1][actual.y].distance < actual.distance && map[actual.x - 1][actual.y].visited === true) {
                 actual.distance = map[actual.x - 1][actual.y].distance;
                 shortestDistance = map[actual.x - 1][actual.y];
             }
         }
         if (actual.y + 1 < map[0].length) {
             console.log("c");
-            if (map[actual.x][actual.y + 1].distance < actual.distance) {
+            if (map[actual.x][actual.y + 1].distance < actual.distance && map[actual.x][actual.y + 1].visited === true) {
                 actual.distance = map[actual.x][actual.y + 1].distance;
                 shortestDistance = map[actual.x][actual.y + 1];
             }
         }
         if (actual.y - 1 >= 0) {
             console.log("d");
-            if (map[actual.x][actual.y - 1].distance < actual.distance) {
+            if (map[actual.x][actual.y - 1].distance < actual.distance && map[actual.x][actual.y - 1].visited === true) {
                 actual.distance = map[actual.x][actual.y - 1].distance;
                 shortestDistance = map[actual.x][actual.y - 1];
             }
@@ -273,7 +319,8 @@ function foundOrigin(map, target) {
         if (actual.distance === 0) {
             break;
         }
+        map[actual.x][actual.y].color = "orange";
         colorSurfaces(actual.x * 20, actual.y * 20, "orange");
-        safe++;
+        //safe++;
     }
 }

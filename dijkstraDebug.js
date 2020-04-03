@@ -1,5 +1,7 @@
-var amap = createMap(20, 10);
-difuse(amap, {x: 5, y:5}, 2);
+//used for debugging, the visual studio code debugger is not working with html element inside a code.
+
+var map = createMap(20, 10);
+difuse(map, {x: 5, y:5}, 2);
 
 function createMap(w, h) {
     var map = [];
