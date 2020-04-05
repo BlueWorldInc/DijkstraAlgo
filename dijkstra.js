@@ -13,6 +13,11 @@ var map = createMap(20, 10);
 canvas.addEventListener('keydown', function (event) {
     const keys = event.key;
     switchMode(keys);
+     if (keys === "c") {
+        clearMap(map, 20, 10);
+        clearCanvas();
+        gridDrawer();
+     }
 });
 
 function gridDrawer() {
@@ -91,6 +96,7 @@ function drawOnClick(evt) {
        // gridDrawer();
     } else if (mode === "clear") {
         clearMap(map, 20, 10);
+        // clearCanvas();
     } else if (mode === "erase") {
         erase(evt);
     }
@@ -207,6 +213,7 @@ function difuse(map, origin, depth) {
 //    console.log(map);
 //    console.log(target);
     if (found) {
+        target.visited = true;
         foundOrigin(map, target);
     }
 }
@@ -233,12 +240,28 @@ function clearMap(map, w, h) {
     targetPosition = undefined;
 }
 
+
+function clearVisited(map, w, h) {
+    for (var i = 0; i < w; i++) {
+        for (var j = 0; j < h; j++) {
+            if (map[i][j].visited === true) {
+                map[i][j] = {x: i, y: j, type: "N", color: "rgb(255, 255, 255)", distance: 0, visited: false};
+            }
+        }
+    }
+}
+
 function sleep(ms) {
     return new Promise(resolve => setTimeout(resolve, ms));
 }
 
 function placeTarget(evt) {
     if (targetPosition === undefined) {
+        Object.assign(map[Math.floor(getMousePos(canvas, evt).x / 20 )][Math.floor(getMousePos(canvas, evt).y / 20)], {type: "T", color: "red"});
+        targetPosition = {x: Math.floor(getMousePos(canvas, evt).x / 20), y: Math.floor(getMousePos(canvas, evt).y / 20)}
+    } else {
+        console.log(map);
+        clearVisited(map, 20, 10);
         Object.assign(map[Math.floor(getMousePos(canvas, evt).x / 20 )][Math.floor(getMousePos(canvas, evt).y / 20)], {type: "T", color: "red"});
         targetPosition = {x: Math.floor(getMousePos(canvas, evt).x / 20), y: Math.floor(getMousePos(canvas, evt).y / 20)}
     }
@@ -265,14 +288,12 @@ function erase(evt) {
 }
 
 function switchMode(key) {
-    if (key === "t") {
+    if (key === "t" || key === "a") {
         mode = "target";
-    } else if (key === "o") {
+    } else if (key === "o" || key === "z") {
         mode = "origin";
     } else if (key === "w") {
         mode = "wall";
-    } else if (key === "c") {
-        mode = "clear";
     } else if (key === "e") {
         mode = "erase";
     } else {
